@@ -40,18 +40,18 @@ func main() {
 		fmt.Println("file retrieved:", len(fileBytes))
 	}
 
-	replaceResp, err := AddFile(TokenAccessClient(), "doi:10.70122/FK2/UBHLMO")
+	addFileResp, err := AddFile(TokenAccessClient(), "doi:10.70122/FK2/UBHLMO")
 	if err != nil {
 		fmt.Println("replacing file failed:", err)
 	} else {
-		fmt.Println("file replaced:", replaceResp.Status)
+		fmt.Println("file replaced:", addFileResp.Status)
 	}
 
-	replaceMapResp, err := AddFileUsingMapsAsJson(TokenAccessClient(), "doi:10.70122/FK2/UBHLMO")
+	addFileMapResp, err := AddFileUsingMapsAsJson(TokenAccessClient(), "doi:10.70122/FK2/UBHLMO")
 	if err != nil {
 		fmt.Println("replacing file using maps failed:", err)
 	} else {
-		fmt.Println("file replaced using maps:", replaceMapResp["status"])
+		fmt.Println("file replaced using maps:", addFileMapResp["status"])
 	}
 }
 
