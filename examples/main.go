@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"os"
 
-	"libis.be/dataverse/api"
+	"github.com/libis/rdm-dataverse-go-api/api"
 )
 
 var server = "https://demo.dataverse.org"
