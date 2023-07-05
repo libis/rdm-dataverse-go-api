@@ -4,7 +4,7 @@ Go API for Dataverse
 To use the API, add this to your ```go.mod``` (change the version to the latest released version):
 ```
 require (
-	github.com/libis/rdm-dataverse-go-api v1.0.1
+	github.com/libis/rdm-dataverse-go-api v1.0.2
 )
 ```
 
