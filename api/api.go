@@ -93,7 +93,7 @@ func Do(ctx context.Context, req *Request, res interface{}) error {
 	if err != nil {
 		return err
 	}
-	return unmarshalStream(stream, res)
+	return unmarshalAndCloseStream(stream, res)
 }
 
 // do not forget to close the stream after reading...
@@ -134,7 +134,7 @@ func signUrl(ctx context.Context, req *Request) (string, bool, error) {
 		return "", false, err
 	}
 	res := SignedUrlResponse{}
-	err = unmarshalStream(resp.Body, &res)
+	err = unmarshalAndCloseStream(resp.Body, &res)
 	if err != nil {
 		return "", false, err
 	}
@@ -154,7 +154,7 @@ func signingRequest(ctx context.Context, req *Request, url string) *http.Request
 	return request
 }
 
-func unmarshalStream(stream io.ReadCloser, res interface{}) error {
+func unmarshalAndCloseStream(stream io.ReadCloser, res interface{}) error {
 	defer stream.Close()
 	b, err := io.ReadAll(stream)
 	if err != nil {
