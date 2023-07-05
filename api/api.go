@@ -126,7 +126,7 @@ func signUrl(ctx context.Context, req *Request) (string, bool, error) {
 	if strings.HasPrefix(req.Path, req.DataverseServer) {
 		url = req.Path
 	}
-	if req.ApiKey != "" || req.UnblockKey == "" || req.User == "" {
+	if req.ApiKey == "" || req.UnblockKey == "" || req.User == "" {
 		return url, true, nil
 	}
 	resp, err := http.DefaultClient.Do(signingRequest(ctx, req, url))
