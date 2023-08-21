@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -98,11 +99,11 @@ func Do(ctx context.Context, req *Request, res interface{}) error {
 
 // do not forget to close the stream after reading...
 func DoStream(ctx context.Context, req *Request) (io.ReadCloser, error) {
-	url, addTokenToHeader, err := signUrl(ctx, req)
+	u, addTokenToHeader, err := signUrl(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	request, err := http.NewRequestWithContext(ctx, req.Method, url, req.RequestBody)
+	request, err := http.NewRequestWithContext(ctx, req.Method, u, req.RequestBody)
 	if err != nil {
 		return nil, err
 	}
@@ -122,14 +123,14 @@ func DoStream(ctx context.Context, req *Request) (io.ReadCloser, error) {
 }
 
 func signUrl(ctx context.Context, req *Request) (string, bool, error) {
-	url := req.DataverseServer + req.Path
+	u := req.DataverseServer + req.Path
 	if strings.HasPrefix(req.Path, req.DataverseServer) {
-		url = req.Path
+		u = req.Path
 	}
 	if req.ApiKey == "" || req.UnblockKey == "" || req.User == "" {
-		return url, true, nil
+		return u, true, nil
 	}
-	resp, err := http.DefaultClient.Do(signingRequest(ctx, req, url))
+	resp, err := http.DefaultClient.Do(signingRequest(ctx, req, u))
 	if err != nil {
 		return "", false, err
 	}
@@ -141,11 +142,22 @@ func signUrl(ctx context.Context, req *Request) (string, bool, error) {
 	if res.Status != "OK" {
 		return "", false, fmt.Errorf(res.Message)
 	}
+	parsed, err := url.Parse(res.Data.SignedUrl)
+	if err != nil {
+		return "", false, err
+	}
+	q, err := url.ParseQuery(parsed.RawQuery)
+	if err != nil {
+		return "", false, err
+	}
+	if len(q["user"]) != 1 || q["user"][0] != req.User {
+		return "", false, fmt.Errorf("unknown user: %v", req.User)
+	}
 	return res.Data.SignedUrl, false, nil
 }
 
-func signingRequest(ctx context.Context, req *Request, url string) *http.Request {
-	jsonString := fmt.Sprintf(`{"url":"%v","timeOut":500,"user":"%v","httpMethod":"%v"}`, url, req.User, req.Method)
+func signingRequest(ctx context.Context, req *Request, u string) *http.Request {
+	jsonString := fmt.Sprintf(`{"url":"%v","timeOut":500,"user":"%v","httpMethod":"%v"}`, u, req.User, req.Method)
 	signingServiceUrl := req.DataverseServer + "/api/v1/admin/requestSignedUrl?unblock-key=" + req.UnblockKey
 	body := bytes.NewBuffer([]byte(jsonString))
 	request, _ := http.NewRequestWithContext(ctx, "POST", signingServiceUrl, body)
