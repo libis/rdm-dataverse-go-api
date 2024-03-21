@@ -130,7 +130,11 @@ func signUrl(ctx context.Context, req *Request) (string, bool, error) {
 	if req.ApiKey == "" || req.UnblockKey == "" || req.User == "" {
 		return u, true, nil
 	}
-	resp, err := http.DefaultClient.Do(signingRequest(ctx, req, u))
+	unescaped, err := url.QueryUnescape(u)
+	if err != nil {
+		return "", false, err
+	}
+	resp, err := http.DefaultClient.Do(signingRequest(ctx, req, unescaped))
 	if err != nil {
 		return "", false, err
 	}
@@ -153,7 +157,11 @@ func signUrl(ctx context.Context, req *Request) (string, bool, error) {
 	if len(q["user"]) != 1 || q["user"][0] != req.User {
 		return "", false, fmt.Errorf("unknown user: %v", req.User)
 	}
-	return res.Data.SignedUrl, false, nil
+	if len(q["until"]) != 1 || len(q["method"]) != 1 || len(q["token"]) != 1 {
+		return "", false, fmt.Errorf("missing one of signature fields: until=%v, method=%v, token=%v", q["until"], q["method"], q["token"])
+	}
+	signedUrl := fmt.Sprintf("%s&until=%s&user=%s&method=%s&token=%s", u, q["until"][0], q["user"][0], q["method"][0], q["token"][0])
+	return signedUrl, false, nil
 }
 
 func signingRequest(ctx context.Context, req *Request, u string) *http.Request {
