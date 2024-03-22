@@ -4,6 +4,7 @@ package api
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"time"
@@ -83,6 +84,13 @@ type ResChecksum struct {
 	Value string `json:"value,omitempty"`
 }
 
+type SigningRequest struct {
+	Url        string `json:"url"`
+	TimeOut    int64  `json:"timeOut"`
+	User       string `json:"user"`
+	HttpMethod string `json:"httpMethod"`
+}
+
 type SignedUrlResponse struct {
 	DvResponse
 	Data SignedUrlData `json:"data"`
@@ -157,7 +165,7 @@ var createDatasetRequestFormat = `
 				"fields": [{
 					"value": [{
 						"authorName": {
-							"value": "%v, %v",
+							"value": "%v",
 							"typeClass": "primitive",
 							"multiple": false,
 							"typeName": "authorName"
@@ -175,7 +183,8 @@ var createDatasetRequestFormat = `
 `
 
 func CreateDatasetRequestBody(user User) io.Reader {
-	data := []byte(fmt.Sprintf(createDatasetRequestFormat, user.Data.LastName, user.Data.FirstName))
+	usernameBytes, _ := json.Marshal(fmt.Sprintf("%v, %v", user.Data.LastName, user.Data.FirstName))
+	data := []byte(fmt.Sprintf(createDatasetRequestFormat, string(usernameBytes)))
 	return bytes.NewReader(data)
 }
 

@@ -165,7 +165,7 @@ func signUrl(ctx context.Context, req *Request) (string, bool, error) {
 }
 
 func signingRequest(ctx context.Context, req *Request, u string) *http.Request {
-	jsonString := fmt.Sprintf(`{"url":"%v","timeOut":500,"user":"%v","httpMethod":"%v"}`, u, req.User, req.Method)
+	jsonString, _ := json.Marshal(SigningRequest{u, 500, req.User, req.Method})
 	signingServiceUrl := req.DataverseServer + "/api/v1/admin/requestSignedUrl?unblock-key=" + req.UnblockKey
 	body := bytes.NewBuffer([]byte(jsonString))
 	request, _ := http.NewRequestWithContext(ctx, "POST", signingServiceUrl, body)
