@@ -165,7 +165,7 @@ var createDatasetRequestFormat = `
 				"fields": [{
 					"value": [{
 						"authorName": {
-							"value": "%v",
+							"value": %v,
 							"typeClass": "primitive",
 							"multiple": false,
 							"typeName": "authorName"
