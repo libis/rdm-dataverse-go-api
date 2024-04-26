@@ -160,7 +160,11 @@ func signUrl(ctx context.Context, req *Request) (string, bool, error) {
 	if len(q["until"]) != 1 || len(q["method"]) != 1 || len(q["token"]) != 1 {
 		return "", false, fmt.Errorf("missing one of signature fields: until=%v, method=%v, token=%v", q["until"], q["method"], q["token"])
 	}
-	signedUrl := fmt.Sprintf("%s&until=%s&user=%s&method=%s&token=%s", u, q["until"][0], q["user"][0], q["method"][0], q["token"][0])
+	qm := "?"
+	if (strings.Contains(u, "?")) {
+		qm = "&"
+	}
+	signedUrl := fmt.Sprintf("%s%suntil=%s&user=%s&method=%s&token=%s", u, qm, q["until"][0], q["user"][0], q["method"][0], q["token"][0])
 	return signedUrl, false, nil
 }
 
