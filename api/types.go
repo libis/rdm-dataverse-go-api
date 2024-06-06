@@ -197,11 +197,11 @@ type RetrieveResponse struct {
 type RetrieveResponseData struct {
 	Pagination      Pagination      `json:"pagination"`
 	Items           []Item          `json:"items"`
-	TotoalCount     int             `json:"total_count"`
+	TotalCount     int             `json:"total_count"`
 	Start           int             `json:"start"`
 	SearchTerm      string          `json:"search_term"`
 	DvObjectCounts  DvObjectCounts  `json:"dvobject_counts"`
-	PubstatusCounts PubstatusCounts `json:"pubstatus_counts"`
+	PubStatusCounts PubStatusCounts `json:"pubstatus_counts"`
 	SelectedFilters SelectedFilters `json:"selected_filters"`
 }
 
@@ -211,7 +211,7 @@ type DvObjectCounts struct {
 	DatasetsCount   int `json:"datasets_count"`
 }
 
-type PubstatusCounts struct {
+type PubStatusCounts struct {
 	UnpublishedCount   int `json:"unpublished_count"`
 	DraftCount         int `json:"draft_count"`
 	PublishedCount     int `json:"published_count"`
