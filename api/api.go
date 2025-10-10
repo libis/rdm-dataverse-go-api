@@ -101,7 +101,7 @@ func Do(ctx context.Context, req *Request, res interface{}) error {
 func DoStream(ctx context.Context, req *Request) (io.ReadCloser, error) {
 	u, addTokenToHeader, err := signUrl(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error signing url")
 	}
 	request, err := http.NewRequestWithContext(ctx, req.Method, u, req.RequestBody)
 	if err != nil {
