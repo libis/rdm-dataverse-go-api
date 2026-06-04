@@ -130,12 +130,16 @@ func signUrl(ctx context.Context, req *Request) (string, bool, error) {
 	if req.ApiKey == "" || req.UnblockKey == "" || req.User == "" {
 		return u, true, nil
 	}
-	// Send the URL exactly as constructed and use the signed URL the server returns, verbatim.
-	// Dataverse signs and validates the URL byte-for-byte, so the client must present back exactly
-	// what the server signed. Reconstructing it from the original URL (the previous behaviour) broke
-	// validation whenever the two differed (e.g. percent-encoded persistentIds, spaces). Using the
-	// returned signedUrl as-is works across all Dataverse versions and for any URL encoding.
-	resp, err := http.DefaultClient.Do(signingRequest(ctx, req, u))
+	// Dataverse signs the URL-decoded form and, on validation, URL-decodes the request before
+	// checking the signature. So we un-escape before signing, then build the request from the
+	// original (still-encoded) URL plus the returned signature fields; the server decodes that back
+	// to the form it signed. (Using the returned signedUrl verbatim would fail: a percent-encoded
+	// value decodes to different bytes than were signed.)
+	unescaped, err := url.QueryUnescape(u)
+	if err != nil {
+		return "", false, err
+	}
+	resp, err := http.DefaultClient.Do(signingRequest(ctx, req, unescaped))
 	if err != nil {
 		return "", false, err
 	}
@@ -147,7 +151,6 @@ func signUrl(ctx context.Context, req *Request) (string, bool, error) {
 	if res.Status != "OK" {
 		return "", false, fmt.Errorf(res.Message)
 	}
-	// Sanity-check that the response carries the expected signature fields for the right user.
 	parsed, err := url.Parse(res.Data.SignedUrl)
 	if err != nil {
 		return "", false, err
@@ -162,7 +165,12 @@ func signUrl(ctx context.Context, req *Request) (string, bool, error) {
 	if len(q["until"]) != 1 || len(q["method"]) != 1 || len(q["token"]) != 1 {
 		return "", false, fmt.Errorf("missing one of signature fields: until=%v, method=%v, token=%v", q["until"], q["method"], q["token"])
 	}
-	return res.Data.SignedUrl, false, nil
+	qm := "?"
+	if strings.Contains(u, "?") {
+		qm = "&"
+	}
+	signedUrl := fmt.Sprintf("%s%suntil=%s&user=%s&method=%s&token=%s", u, qm, q["until"][0], q["user"][0], q["method"][0], q["token"][0])
+	return signedUrl, false, nil
 }
 
 func signingRequest(ctx context.Context, req *Request, u string) *http.Request {
