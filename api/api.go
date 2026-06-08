@@ -10,8 +10,16 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 )
+
+// signatureFieldsRe matches the signature block Dataverse appends to the end of
+// a signed URL: ...[?&]until=<ts>&user=<id>&method=<verb>&token=<hex>. It is
+// anchored to the end of the string so it reliably extracts these fields even
+// when the preceding URL contains a literal '%' (a bare, non-escape percent),
+// which would make url.Parse on the whole signed URL fail.
+var signatureFieldsRe = regexp.MustCompile(`[?&]until=([^&]*)&user=([^&]*)&method=([^&]*)&token=([^&]*)$`)
 
 type Request struct {
 	DataverseServer string
@@ -149,27 +157,27 @@ func signUrl(ctx context.Context, req *Request) (string, bool, error) {
 		return "", false, err
 	}
 	if res.Status != "OK" {
-		return "", false, fmt.Errorf(res.Message)
+		return "", false, fmt.Errorf("%s", res.Message)
 	}
-	parsed, err := url.Parse(res.Data.SignedUrl)
-	if err != nil {
-		return "", false, err
+	// Extract the appended signature fields (until/user/method/token) directly
+	// from the end of the signed URL. We cannot url.Parse the whole signed URL:
+	// when the original URL carries a literal '%' (e.g. a value that decoded to
+	// "100%"), the echoed-back signed URL contains a bare, non-escape percent
+	// and url.Parse rejects it with "invalid URL escape". The signature fields
+	// themselves are always safe ASCII, so a tail match is sufficient.
+	m := signatureFieldsRe.FindStringSubmatch(res.Data.SignedUrl)
+	if m == nil {
+		return "", false, fmt.Errorf("signed url missing signature fields: %s", res.Data.SignedUrl)
 	}
-	q, err := url.ParseQuery(parsed.RawQuery)
-	if err != nil {
-		return "", false, err
-	}
-	if len(q["user"]) != 1 || q["user"][0] != req.User {
+	until, user, method, token := m[1], m[2], m[3], m[4]
+	if user != req.User {
 		return "", false, fmt.Errorf("unknown user: %v", req.User)
-	}
-	if len(q["until"]) != 1 || len(q["method"]) != 1 || len(q["token"]) != 1 {
-		return "", false, fmt.Errorf("missing one of signature fields: until=%v, method=%v, token=%v", q["until"], q["method"], q["token"])
 	}
 	qm := "?"
 	if strings.Contains(u, "?") {
 		qm = "&"
 	}
-	signedUrl := fmt.Sprintf("%s%suntil=%s&user=%s&method=%s&token=%s", u, qm, q["until"][0], q["user"][0], q["method"][0], q["token"][0])
+	signedUrl := fmt.Sprintf("%s%suntil=%s&user=%s&method=%s&token=%s", u, qm, until, user, method, token)
 	return signedUrl, false, nil
 }
 
